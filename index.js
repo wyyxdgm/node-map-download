@@ -22,13 +22,6 @@ const { procesLatlng, processTilenum } = require("./src/node-spider");
 //   "jpg"
 // );
 
-procesLatlng(
-  85.05112878,
-  -180,
-  -85.05112878,
-  180,
-  3,
-  "gaode",
-  "gaode",
-  "jpg"
-);
+for (let level = 1; level <= 20; level++) {
+  procesLatlng(85.05112878, -180, -85.05112878, 180, level, "gaode", "gaode", "jpg");
+}
