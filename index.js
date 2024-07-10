@@ -11,13 +11,24 @@ const { procesLatlng, processTilenum } = require("./src/node-spider");
 //   "png"
 // );
 
+// procesLatlng(
+//   85.05112878,
+//   -180,
+//   -85.05112878,
+//   180,
+//   3,
+//   "tianditu_img",
+//   "tianditu_img",
+//   "jpg"
+// );
+
 procesLatlng(
   85.05112878,
   -180,
   -85.05112878,
   180,
   3,
-  "tianditu_img",
-  "tianditu_img",
+  "gaode",
+  "gaode",
   "jpg"
 );
