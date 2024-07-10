@@ -15,30 +15,12 @@ const { URL } = require("./config/config");
  * @param {String} output output filename
  * @param {String} maptype type
  */
-const procesLatlng = function(
-  north,
-  west,
-  south,
-  east,
-  zoom,
-  output,
-  maptype,
-  suffix
-) {
+const procesLatlng = async function (north, west, south, east, zoom, output, maptype, suffix) {
   output = output || "mosaic";
   maptype = maptype || "default";
   var left_top = latlng2tilenum(north, west, zoom);
   var right_bottom = latlng2tilenum(south, east, zoom);
-  processTilenum(
-    left_top[0],
-    right_bottom[0],
-    left_top[1],
-    right_bottom[1],
-    zoom,
-    output,
-    maptype,
-    suffix
-  );
+  await processTilenum(left_top[0], right_bottom[0], left_top[1], right_bottom[1], zoom, output, maptype, suffix);
 };
 
 /**
@@ -52,49 +34,42 @@ const procesLatlng = function(
  * @param {String} output output filename
  * @param {String} maptype type
  */
-const processTilenum = function(
-  left,
-  right,
-  top,
-  bottom,
-  zoom,
-  output,
-  maptype,
-  suffix
-) {
+const processTilenum = async function (left, right, top, bottom, zoom, output, maptype, suffix) {
   output = output || "mosaic";
   maptype = maptype || "default";
-  checkout(left, right, top, bottom, zoom, output, maptype, suffix);
+  await checkout(left, right, top, bottom, zoom, output, maptype, suffix);
 };
 
-const _download = function(x, y, z, filename, maptype) {
+const _download = async function (x, y, z, filename, maptype) {
   var url = URL[maptype].format({ x: x, y: y, z: z, s: random(1, 4) });
   var pathname = path.dirname(filename);
   mkdirsSync(pathname);
   if (!fs.existsSync(filename)) {
-    request(
-      {
-        url: url,
-        headers: headers,
-        encoding: "binary"
-      },
-      (err, response) => {
-        if (err) {
-          return err;
+    await new Promise((r, j) => {
+      request(
+        {
+          url: url,
+          headers: headers,
+          encoding: "binary",
+        },
+        (err, response) => {
+          if (err) {
+            return j(err);
+          }
+          fs.writeFileSync(filename, response.body, "binary");
+          console.log(`done ${filename}`, );
+          r();
         }
-        fs.writeFileSync(filename, response.body, "binary");
-      }
-    );
+      );
+    });
   }
 };
 
-const latlng2tilenum = function(lat_deg, lng_deg, zoom) {
+const latlng2tilenum = function (lat_deg, lng_deg, zoom) {
   var n = Math.pow(2, zoom);
   var xtile = ((lng_deg + 180) / 360) * n;
   var lat_rad = (lat_deg / 180) * Math.PI;
-  var ytile =
-    ((1 - Math.log(Math.tan(lat_rad) + 1 / Math.cos(lat_rad)) / Math.PI) / 2) *
-    n;
+  var ytile = ((1 - Math.log(Math.tan(lat_rad) + 1 / Math.cos(lat_rad)) / Math.PI) / 2) * n;
   // 当范围为全球瓦片时;
   if (xtile < 0) xtile = 0;
   if (xtile >= 1 << zoom) xtile = (1 << zoom) - 1;
@@ -103,51 +78,42 @@ const latlng2tilenum = function(lat_deg, lng_deg, zoom) {
   return [Math.floor(xtile), Math.floor(ytile)];
 };
 
-const random = function(start, end) {
+const random = function (start, end) {
   return Math.floor(Math.random() * (end - start + 1)) + start;
 };
 
-const checkout = function(
-  left,
-  right,
-  top,
-  bottom,
-  z,
-  filename,
-  maptype,
-  suffix
-) {
+const checkout = async function (left, right, top, bottom, z, filename, maptype, suffix) {
   maptype = maptype || "default";
   var tasks = [];
   for (let x = left; x < right + 1; x++) {
     for (let y = top; y < bottom + 1; y++) {
-      tasks.push(checkoutSingle(x, y, z, filename, maptype, suffix));
+      tasks.push(await checkoutSingle(x, y, z, filename, maptype, suffix));
     }
   }
 };
 
-const checkoutSingle = function(x, y, z, filename, maptype, suffix) {
+const checkoutSingle = async function (x, y, z, filename, maptype, suffix) {
   var pathname = `tiles/{filename}/{z}/{x}/{y}.${suffix}`.format({
     x: x,
     y: y,
     z: z,
-    filename: filename
+    filename: filename,
   });
   var abspath = path.resolve(pathname);
 
-  return new Promise((resolve, reject) => {
+  return new Promise(async(resolve, reject) => {
     if (!fs.existsSync(abspath)) {
-      _download(x, y, z, pathname, maptype);
+      await _download(x, y, z, pathname, maptype);
     } else {
-      fs.stat(abspath, function(err, stats) {
+      fs.stat(abspath, async function (err, stats) {
         if (err) {
-          _download(x, y, z, pathname, maptype);
+          await _download(x, y, z, pathname, maptype);
           reject(err);
           return;
         }
         if (!stats.size) {
           fs.unlinkSync(path);
-          _download(x, y, z, pathname, maptype);
+          await _download(x, y, z, pathname, maptype);
         }
       });
     }
@@ -155,7 +121,7 @@ const checkoutSingle = function(x, y, z, filename, maptype, suffix) {
   });
 };
 
-String.prototype.format = function(json) {
+String.prototype.format = function (json) {
   var temp = this;
   for (var key in json) {
     temp = temp.replace("{" + key + "}", json[key]);
@@ -163,13 +129,13 @@ String.prototype.format = function(json) {
   return temp;
 };
 
-Number.prototype.toRad = function() {
+Number.prototype.toRad = function () {
   return (this * Math.PI) / 180;
 };
-const mkdirsSync = function(dirpath, mode) {
+const mkdirsSync = function (dirpath, mode) {
   if (!fs.existsSync(dirpath)) {
     var pathtmp;
-    dirpath.split("/").forEach(function(dirname) {
+    dirpath.split("/").forEach(function (dirname) {
       if (pathtmp) {
         pathtmp = path.join(pathtmp, dirname);
       } else {
@@ -187,5 +153,5 @@ const mkdirsSync = function(dirpath, mode) {
 
 module.exports = {
   procesLatlng,
-  processTilenum
+  processTilenum,
 };
