@@ -3,6 +3,7 @@ const path = require("path");
 const request = require("request");
 const headers = require("./utils/headers");
 const { URL } = require("./config/config");
+const { log } = require("console");
 
 /**
  * Get the map by latitude and longitude of four corners
@@ -87,10 +88,17 @@ const checkout = async function (left, right, top, bottom, z, filename, maptype,
   var tasks = [];
   for (let x = left; x < right + 1; x++) {
     for (let y = top; y < bottom + 1; y++) {
-      tasks.push(await checkoutSingle(x, y, z, filename, maptype, suffix));
+      await sleep(500);
+      log('start',x, y, z, filename, maptype, suffix)
+      tasks.push(await checkoutSingle(x, y, z, filename, maptype, suffix).then(console.log).catch(console.error));
+      log('end',x, y, z, filename, maptype, suffix)
     }
   }
 };
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 const checkoutSingle = async function (x, y, z, filename, maptype, suffix) {
   var pathname = `tiles/{filename}/{z}/{x}/{y}.${suffix}`.format({
@@ -108,10 +116,7 @@ const checkoutSingle = async function (x, y, z, filename, maptype, suffix) {
       fs.stat(abspath, async function (err, stats) {
         if (err) {
           await _download(x, y, z, pathname, maptype);
-          reject(err);
-          return;
-        }
-        if (!stats.size) {
+        } else if (!stats.size) {
           fs.unlinkSync(path);
           await _download(x, y, z, pathname, maptype);
         }
@@ -135,7 +140,7 @@ Number.prototype.toRad = function () {
 const mkdirsSync = function (dirpath, mode) {
   if (!fs.existsSync(dirpath)) {
     var pathtmp;
-    dirpath.split("/").forEach(function (dirname) {
+    dirpath.split(/\/|\\/).forEach(function (dirname) {
       if (pathtmp) {
         pathtmp = path.join(pathtmp, dirname);
       } else {

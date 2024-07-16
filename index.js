@@ -21,8 +21,9 @@ const { procesLatlng, processTilenum } = require("./src/node-spider");
 //   "tianditu_img",
 //   "jpg"
 // );
-(async () => {
-  for (let level = 1; level <= 20; level++) {
-    await procesLatlng(85.05112878, -180, -85.05112878, 180, level, "gaode", "gaode", "jpg");
-  }
-})();
+procesLatlng(85.05112878, -180, -85.05112878, 180, 12, "gaode", "gaode", "jpg");
+// (async () => {
+//   for (let level = 11; level <= 20; level++) {
+//     await procesLatlng(85.05112878, -180, -85.05112878, 180, level, "gaode", "gaode", "jpg");
+//   }
+// })();

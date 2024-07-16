@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/ShareQiu1994/node-map-download#readme",
   "dependencies": {
-    "request": "^2.88.0"
+    "request": "^2.88.0",
+    "typescript": "^5.5.3"
   }
 }
